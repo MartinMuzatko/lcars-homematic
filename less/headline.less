@@ -1,0 +1,36 @@
+.headline {
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: @color-blue;
+    margin-bottom: .5em;
+    margin-left: 1em;
+    margin-right: 1em;
+    position: relative;
+    line-height: 1;
+    span {
+        //margin-left: 1em;
+        background: @color-dark;
+        padding: 0 .25em 0 0;
+    }
+    &::before, &::after {
+        background: @color-violet;
+        width: .75em;
+        height: 1em;
+        content: '';
+        position: absolute;
+    }
+
+    &::before {
+        left: -1em;
+        border-radius: 1em 0 0 1em;
+    }
+    &::after {
+        right: -1em;
+        border-radius: 0 1em 1em 0;
+    }
+}
+
+h1,h2,h3 {
+    font-weight: 400;
+}

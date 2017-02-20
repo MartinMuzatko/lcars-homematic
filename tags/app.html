@@ -1,0 +1,37 @@
+<app>
+    <lcars-headline>
+        MisaPum 9177
+    </lcars-headline>
+    <div style="margin-left: 2em">
+        <div layout="row" style="height: 8em;">
+            <div each={section in sections} style="margin-right: 1em;" >
+                <random-numbers></random-numbers>
+            </div>
+        </div>
+        <a href="#" class="button red">WZ Licht An</a>
+        <a href="#" class="button orange">Beispiel</a>
+        <a href="#" class="button violet">Beispiel</a>
+        <a href="#" class="button blue">Beispiel</a>
+    </div>
+    <script>
+        import './random-numbers.html'
+        import './lcars-headline.html'
+        this.sections = []
+
+        this.on('mount', ()=>{
+            setTimeout(()=>{
+                this.sections.push(1)
+                this.update()
+                setTimeout(()=>{
+                    this.sections.push(1)
+                    this.update()
+                    setTimeout(()=>{
+                        this.sections.push(1)
+                        this.update()
+                    }, 1000)
+                }, 1000)
+            }, 1000)
+        })
+
+    </script>
+</app>

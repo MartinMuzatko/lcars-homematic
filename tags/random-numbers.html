@@ -1,0 +1,27 @@
+<random-numbers>
+    <div each={number in numbers}>
+        {number}<br>
+    </div>
+    <script>
+
+        this.numbers = []
+        this.interval = 75
+
+        randomNumbers() {
+            setTimeout(()=>{
+                //this.numbers.push('00000000')
+                this.numbers.push(1e8 + Math.random() * 9e8 | 0)
+                if (this.numbers.length > 6) {
+                    this.numbers.shift()
+                    this.interval = 1000
+                }
+                this.update()
+                this.randomNumbers()
+            },this.interval)
+        }
+
+        this.on('mount', ()=>{
+            this.randomNumbers()
+        })
+    </script>
+</random-numbers>
