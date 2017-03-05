@@ -1,0 +1,185 @@
+<app>
+    <lcars-headline>
+        MisaPum 9177
+    </lcars-headline>
+    <div style="margin-left: 2em">
+        <div layout="row" style="height: 8em;">
+            <div each={section in sections} style="margin-right: 1em;" >
+                <random-numbers></random-numbers>
+            </div>
+        </div>
+		<a onclick={setVolume} data-volume="1" href="#" class="button red">Volume 1</a>
+		<a onclick={setVolume} data-volume="10" href="#" class="button red">Volume 10</a>
+		<a onclick={setVolume} data-volume="20" href="#" class="button red">Volume 20</a>
+		<a onclick={setVolume} data-volume="30" href="#" class="button red">Volume 30</a>
+		<a onclick={setVolume} data-volume="40" href="#" class="button red">Volume 40</a>
+		<a onclick={setVolume} data-volume="50" href="#" class="button red">Volume 50</a>
+		<a onclick={setVolume} data-volume="60" href="#" class="button red">Volume 60</a>
+		<a onclick={setVolume} data-volume="70" href="#" class="button red">Volume 70</a>
+		<a onclick={setVolume} data-volume="100" href="#" class="button red">Volume 100</a>
+		<a onclick={switchYamaha} data-state="ON" href="#" class="button orange">YAMAHA ON</a>
+		<a onclick={switchYamaha} data-state="OFF" href="#" class="button orange">YAMAHA OFF</a>
+		<a onclick={setYamahaSource} data-state="HDMI4" href="#" class="button blue">ChromeCast</a>
+        <a onclick={setYamahaSource} data-state="AV1" href="#" class="button violet">Squeezy</a>
+		<textarea ref="textarea" name="name" rows="8" cols="80"></textarea>
+    </div>
+    <script>
+        import './random-numbers.html'
+        import './lcars-headline.html'
+		import request from 'browser-request'
+		import annyang from 'annyang/dist/annyang'
+		import cheerio from 'cheerio'
+        this.sections = []
+		this.restURL = 'http://192.168.255.4:8080/rest/'
+		this.speechAllowed = true
+		this.lastJoke = ''
+
+		this.actions = {
+			setYamahaSource : (value)=>{
+				var api = `${this.restURL}items/Yamaha_Source`
+				request.post({uri:api, body:value}, ()=>{})
+			},
+			changeRGBColor : (color)=>{
+				var value = false
+				var colors = {
+					'rot': 0,
+					'gelb': 33,
+					'grün': 66,
+					'hellblau': 99,
+					'blau': 132,
+					'violett': 165,
+				}
+				if (colors.hasOwnProperty(color)) {
+					value = colors[color]
+				}
+				console.log(color);
+				if (Number.isInteger(parseInt(color))) {
+					value = color
+				}
+
+				var api = `${this.restURL}items/WZ_RGBW_COLOR`
+				if (value !== false) {
+					this.speak(`Die LED im Wohnzimmer wird ${color} eingestellt`, ()=>{
+						request.post({uri:api, body:value+''}, ()=>{})
+					})
+				}
+
+			},
+			switchYamaha : (value)=>{
+				value = value.toLowerCase().trim()
+				let on = ['an','ein','on']
+				let off = ['aus','ab','off']
+				let state = false
+				if (~on.indexOf(value)) {
+					state = 'ON'
+				} else if (~off.indexOf(value)) {
+					state = 'OFF'
+				}
+				if (state) {
+					this.speak(`Ich schalte die Musik ${value}`, ()=>{
+						var api = `${this.restURL}items/CimeAmp_Power`
+						request.post({uri:api, body:state}, (err)=>{
+							this.actions.setYamahaSource('AV1')
+							if (err) {
+								this.speak('Oh, dein Netzwerk scheint aus zu sein')
+							}
+						})
+					})
+				}
+			},
+			setVolume : (value)=>{
+				this.speak(`Lautstärke ${value} wird eingestellt`, ()=>{
+					var api = `${this.restURL}items/YamahaReceiverRXV773_Volume`
+					request.post({uri:api, body:value}, ()=>{})
+				})
+			},
+			joke : (lastJoke=false)=>{
+				if (lastJoke) {
+					this.speak(this.lastJoke)
+				} else {
+					request.get('http://witze.net/witze.html?image=none&menu=off', (error, response, body)=>{
+						var $ = cheerio.load(body)
+						this.lastJoke = $('td').text()
+						this.speak(this.lastJoke)
+					})
+				}
+			},
+		}
+
+		setYamahaSource(event) {
+			this.actions.setYamahaSource(event.target.dataset.state)
+		}
+
+		switchYamaha(event) {
+			this.actions.switchYamaha(event.target.dataset.state)
+		}
+
+		setVolume(event) {
+			this.actions.setVolume(event.target.dataset.volume)
+		}
+
+		this.speak = (text, action) => {
+			this.synthesis = new SpeechSynthesisUtterance(text)
+			this.synthesis.voice = speechSynthesis.getVoices()[6]
+			this.synthesis.lang = 'de-DE'
+			this.annyang.pause()
+			if (action) {
+				action()
+			}
+			this.synthesis.onend = ()=>{
+				this.annyang.resume()
+			}
+			if (this.speechAllowed) {
+				speechSynthesis.speak(this.synthesis)
+			}
+		}
+
+		this.stopSpeak = () => {
+			this.synthesis.cancel()
+		}
+
+        this.on('mount', ()=>{
+			var commands = {
+				'computer stop' : ()=>{this.stopSpeak()},
+				'computer lautstärke :volume' : (volume)=>{this.actions.setVolume(volume)},
+				'computer musik': {regexp: /^computer.*musik(.*)/, callback:(state)=>{this.actions.switchYamaha(state)}},
+				'ich liebe dich' : ()=>{this.speak('ich dich auch, misan')},
+				'schatz' : ()=>{this.speak('Pum ist nicht da. Er hat viel wichtigere Dinge zu tun. Am besten probierst du es in ein paar Jahren nochmal')},
+				'computer rede mit dir selbst' : ()=>{this.speak('bist du dir sicher, dass du das möchtest?')},
+				'computer spracheingabe für :name' : {regexp: /^computer.*spracheingabe.*für (.*)/,callback:(name)=>{this.speak(`Spracheingabe für ${name} wurde initialisiert. Hallo ${name}`)}},
+				'led auf :name' : {regexp: /^.*LED.*farbe (.*)/,callback:(color)=>{this.actions.changeRGBColor(color)}},
+				'computer witz' : {regexp: /^computer .*witz/, callback:()=>{this.actions.joke()}},
+				'computer witz nochmal' : {regexp: /^computer .*witz nochmal/, callback:()=>{this.actions.joke(true)}},
+				'computer witz nochmal' : {regexp: /^computer .*witz nochmal/, callback:()=>{this.actions.joke(true)}},
+				//'computer source' : {regexp: /^computer .*source (.*) (.*)/ ,callback:(a,b)=>{this.speak(a+b)}},
+				'computer hör auf zu reden' : ()=>{this.speak('In Ordnung, wenn du mich brauchst, sag mir bitte Bescheid.');this.speechAllowed = false},
+				'computer spricht mit mir' : ()=>{this.speechAllowed = true; this.speak('Hallo!')},
+				'computer wie spät ist es' : ()=>{var x = new Date(); this.speak(`Es ist ${x.getHours()} Uhr ${x.getMinutes()}`)},
+				'computer kombiniere :a und :b' : (a,b)=>{this.speak(`${a} plus ${b} ergibt ${parseInt(a)+parseInt(b)}`)},
+				'computer' : ()=>{this.speak('Was kann ich für dich tun?')},
+				'*' : {regexp: /(.*)/,callback:(a)=>{
+					this.refs.textarea.value += `\n${a}`
+					this.update()
+				}},
+			}
+			this.annyang = annyang
+			this.annyang.setLanguage('de-DE')
+			this.annyang.addCommands(commands)
+			this.annyang.debug(true)
+			this.annyang.start({continuous: false})
+            setTimeout(()=>{
+                this.sections.push(1)
+                this.update()
+                setTimeout(()=>{
+                    this.sections.push(1)
+                    this.update()
+                    setTimeout(()=>{
+                        this.sections.push(1)
+                        this.update()
+                    }, 1000)
+                }, 1000)
+            }, 1000)
+        })
+
+    </script>
+</app>
