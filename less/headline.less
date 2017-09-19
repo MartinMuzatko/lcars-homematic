@@ -1,33 +1,35 @@
 .headline {
+    @padding: .25em;
+    @base: 1em;
     display: block;
     margin: 0;
     padding: 0;
     background: @color-blue;
     margin-bottom: .5em;
-    margin-left: 1em;
-    margin-right: 1em;
+    margin-left: @base*2;
+    margin-right: @base*2;
     position: relative;
     line-height: 1;
     span {
         //margin-left: 1em;
         background: @color-dark;
-        padding: 0 .25em 0 0;
+        padding: 0 @padding 0 0;
     }
     &::before, &::after {
         background: @color-violet;
-        width: .75em;
+        width: (@base*2) - @padding;
         height: 1em;
         content: '';
         position: absolute;
     }
 
     &::before {
-        left: -1em;
+        left: -@base*2;
         border-radius: 1em 0 0 1em;
     }
     &::after {
-        right: -1em;
-        border-radius: 0 1em 1em 0;
+        right: -@base*2;
+        border-radius: 0 @base @base 0;
     }
 }
 
